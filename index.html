@@ -2,224 +2,257 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>XeroidTaskReminder</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Xeroid TaskTracker</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0" />
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Google Sans', 'sans-serif'] },
+                    colors: {
+                        m3Bg: '#F7F9FF',
+                        m3Surf: '#EEF2FA',
+                        m3Prim: '#006492',
+                        m3SecContainer: '#D1E4FF',
+                        m3Error: '#BA1A1A'
+                    }
+                }
+            }
+        }
+    </script>
+
     <style>
-        body { 
-            font-family: 'Poppins', sans-serif; 
-            background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%); 
-            min-height: 100vh;
-            color: #334155;
+        * { -webkit-tap-highlight-color: transparent; outline: none; }
+        body { background-color: #F7F9FF; color: #191C1E; overflow-x: hidden; }
+        .m3-card { border-radius: 28px; }
+        .m3-pill { border-radius: 100px; }
+        
+        .bottom-nav {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            background: #EEF2FA; border-top: 1px solid #D1D9E0;
+            display: flex; justify-content: space-around; padding: 12px 0 env(safe-area-inset-bottom, 24px) 0; z-index: 100;
         }
 
-        /* INTENSIFIED GLASS EFFECT */
-        .glass {
-            background: rgba(255, 255, 255, 0.45);
-            backdrop-filter: blur(20px) saturate(160%);
-            -webkit-backdrop-filter: blur(20px) saturate(160%);
-            border: 1px solid rgba(255, 255, 255, 0.7);
-            border-radius: 32px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
-        }
+        .view { display: none; }
+        .view.active { display: block; animation: m3-fade 0.3s ease-out; }
+        @keyframes m3-fade { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        .task-card-glass {
-            background: rgba(255, 255, 255, 0.6);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border-radius: 24px;
-            border: 1px solid rgba(255, 255, 255, 0.8);
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02);
-            transition: all 0.3s ease;
-        }
-
-        /* FLASHY GLASS BUTTON */
-        .flashy-activate {
-            animation: flashy-glow 2s infinite;
-            background: rgba(245, 158, 11, 0.9);
-            backdrop-filter: blur(5px);
-        }
-
-        @keyframes flashy-glow {
-            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.6); }
-            50% { transform: scale(1.03); box-shadow: 0 0 25px 12px rgba(245, 158, 11, 0); }
-            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
-        }
-
-        /* PULSATING OVERDUE GLASS */
-        .pulse-overdue {
-            animation: pulse-red-glass 2s infinite;
-            border: 1px solid rgba(239, 68, 68, 0.5);
-        }
-
-        @keyframes pulse-red-glass {
-            0% { background: rgba(254, 226, 226, 0.4); }
-            50% { background: rgba(254, 202, 202, 0.7); }
-            100% { background: rgba(254, 226, 226, 0.4); }
-        }
-
-        .input-glass {
-            background: rgba(255, 255, 255, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.5);
-            border-radius: 18px;
-        }
-
-        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .m3-input { background: #E1E2E9; border-bottom: 2px solid #43474E; border-radius: 4px 4px 0 0; width: 100%; padding: 1rem; }
+        .nav-item.active .icon-bg { background: #D1E4FF; width: 64px; border-radius: 16px; color: #001D35; }
+        
+        /* M3 Toggle */
+        .switch { position: relative; display: inline-block; width: 52px; height: 32px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #C1C7CE; transition: .4s; border-radius: 32px; }
+        .slider:before { position: absolute; content: ""; height: 24px; width: 24px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: #006492; }
+        input:checked + .slider:before { transform: translateX(20px); }
     </style>
 </head>
-<body class="p-6">
+<body class="font-sans pb-32" onclick="unlockAudioEngine()">
 
-    <div class="max-w-md mx-auto mb-6 glass p-4 flex items-center gap-3">
-        <div class="bg-blue-500/20 p-2 rounded-full">
-            <span class="material-symbols-outlined text-blue-600 text-lg">notifications_active</span>
-        </div>
-        <p class="text-[11px] font-medium text-slate-600 leading-tight">
-            Keep tab open for <span class="font-bold text-blue-600">Audio Alerts</span>. Ensure you click the golden button!
-        </p>
-    </div>
-
-    <header class="max-w-md mx-auto mb-8 flex justify-between items-end">
-        <div>
-            <h1 class="text-2xl font-bold tracking-tight text-slate-800">Xeroid</h1>
-            <p class="text-[10px] font-black text-blue-500 uppercase tracking-[0.2em]">Task Reminder</p>
-            <button onclick="enableSound()" id="notif-toggle" class="flashy-activate flex items-center gap-2 px-4 py-2 text-white rounded-full text-[10px] font-bold uppercase tracking-widest mt-4 shadow-lg shadow-amber-200">
-                <span class="material-symbols-outlined text-[16px]">volume_up</span> 
-                Unlock Audio
-            </button>
-        </div>
-        <div class="glass px-5 py-3 flex items-center gap-4">
-            <div class="text-center">
-                <p class="text-[9px] font-bold text-slate-400 uppercase">Tasks</p>
-                <p id="total-stat" class="text-xl font-bold text-slate-700">0</p>
-            </div>
-            <div class="w-[1px] h-8 bg-white/60"></div>
-            <div class="text-center cursor-pointer" onclick="document.getElementById('overdue-section').scrollIntoView()">
-                <p class="text-[9px] font-bold text-red-400 uppercase">Late</p>
-                <p id="overdue-badge" class="text-xl font-bold text-red-500">0</p>
+    <header class="sticky top-0 z-50 bg-m3Bg/95 backdrop-blur-md px-6 py-5 border-b border-slate-100">
+        <div class="max-w-3xl mx-auto flex justify-between items-center">
+            <h1 class="text-xl font-bold text-m3Prim flex items-center gap-2">
+                <span class="material-symbols-rounded">timer</span> TaskTracker
+            </h1>
+            
+            <div class="flex items-center gap-3 bg-white px-3 py-2 rounded-2xl shadow-sm border border-slate-100">
+                <span class="text-[9px] font-black text-slate-500 uppercase">Alerts</span>
+                <label class="switch">
+                    <input type="checkbox" id="master-toggle" onchange="handleToggle()">
+                    <span class="slider"></span>
+                </label>
             </div>
         </div>
     </header>
 
-    <section class="max-w-md mx-auto glass p-6 mb-10 shadow-xl shadow-slate-200/50">
-        <input id="task-title" type="text" placeholder="What needs doing?" class="w-full bg-transparent border-b border-white/80 pb-3 mb-5 outline-none font-semibold text-slate-700 placeholder:text-slate-400">
-        <textarea id="task-desc" placeholder="Notes (Optional)" class="w-full bg-transparent text-xs text-slate-500 outline-none mb-5 h-12 no-scrollbar resize-none"></textarea>
+    <main class="max-w-2xl mx-auto px-4 mt-4">
         
-        <div class="flex flex-col gap-4">
-            <div class="input-glass p-3 flex items-center gap-3">
-                <span class="material-symbols-outlined text-blue-500 text-lg">schedule</span>
-                <input id="task-time" type="datetime-local" class="bg-transparent text-[11px] font-bold text-slate-600 outline-none w-full cursor-pointer">
-            </div>
-            <button onclick="addTask()" class="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold text-sm shadow-xl shadow-blue-200 active:scale-95 transition-all flex items-center justify-center gap-2">
-                <span class="material-symbols-outlined">add_task</span> Create Reminder
-            </button>
+        <div id="status-bar" class="mb-6 p-4 m3-card flex items-center gap-3 transition-all duration-500 bg-amber-100 text-amber-900">
+            <span id="status-icon" class="material-symbols-rounded animate-pulse">lock</span>
+            <p id="status-text" class="text-xs font-bold uppercase tracking-tight">Tap screen to activate beep engine</p>
         </div>
-    </section>
 
-    <main class="max-w-md mx-auto space-y-10 pb-20">
-        <section>
-            <h2 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-5 px-2">Active Missions</h2>
-            <div id="active-list" class="space-y-4"></div>
-        </section>
+        <div id="view-list" class="view active space-y-6">
+            <section id="critical-section" class="hidden">
+                <h2 class="text-[10px] font-black text-m3Error px-2 mb-3 uppercase tracking-widest">Immediate</h2>
+                <div id="overdue-list" class="space-y-3"></div>
+            </section>
 
-        <section id="overdue-section">
-            <h2 class="text-[10px] font-black text-red-400 uppercase tracking-[0.3em] mb-5 px-2">Critical Alerts</h2>
-            <div id="overdue-list" class="space-y-4"></div>
-        </section>
+            <section>
+                <h2 class="text-[10px] font-black text-slate-400 px-2 mb-3 uppercase tracking-widest">Active Timeline</h2>
+                <div id="active-list" class="space-y-3"></div>
+                <div id="empty-state" class="text-center py-20 opacity-20">
+                    <span class="material-symbols-rounded text-6xl">timer_off</span>
+                    <p class="mt-2 font-medium">No countdowns active</p>
+                </div>
+            </section>
+        </div>
+
+        <div id="view-add" class="view space-y-6">
+            <div class="bg-m3Surf p-6 m3-card space-y-5 shadow-sm">
+                <div>
+                    <label class="text-[11px] font-bold text-m3Prim block mb-1 uppercase ml-1">Objective</label>
+                    <input id="task-title" type="text" placeholder="Mission Name" class="m3-input">
+                </div>
+                <div>
+                    <label class="text-[11px] font-bold text-m3Prim block mb-1 uppercase ml-1">Details</label>
+                    <textarea id="task-desc" placeholder="Optional notes" class="m3-input h-24 resize-none"></textarea>
+                </div>
+                <div>
+                    <label class="text-[11px] font-bold text-m3Prim block mb-1 uppercase ml-1">Execution Time</label>
+                    <p class="text-[10px] text-slate-500 mb-2 ml-1">The alarm will sound when the countdown hits zero.</p>
+                    <input id="task-time" type="datetime-local" class="m3-input font-medium">
+                </div>
+                <button onclick="addTask()" class="w-full bg-m3Prim text-white py-4 m3-pill font-bold shadow-lg shadow-blue-200">Start Countdown</button>
+            </div>
+        </div>
     </main>
 
+    <nav class="bottom-nav">
+        <div class="nav-item active flex flex-col items-center gap-1 cursor-pointer" onclick="switchView('list', this)">
+            <div class="icon-bg py-1 px-6 flex justify-center"><span class="material-symbols-rounded">browse_gallery</span></div>
+            <span class="text-[10px] font-bold tracking-tighter">MISSIONS</span>
+        </div>
+        <div class="nav-item flex flex-col items-center gap-1 cursor-pointer" onclick="switchView('add', this)">
+            <div class="icon-bg py-1 px-6 flex justify-center"><span class="material-symbols-rounded">more_time</span></div>
+            <span class="text-[10px] font-bold tracking-tighter">NEW TASK</span>
+        </div>
+    </nav>
+
     <script>
-        let tasks = JSON.parse(localStorage.getItem('xeroid_ultra_v1')) || [];
-        let soundEnabled = false;
+        let tasks = JSON.parse(localStorage.getItem('xeroid_v8')) || [];
+        let audioEnabled = JSON.parse(localStorage.getItem('xeroid_audio_v8')) ?? true;
+        let audioUnlocked = false;
+        
         const alertSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
 
-        function enableSound() {
-            soundEnabled = true;
-            const btn = document.getElementById('notif-toggle');
-            btn.innerHTML = `<span class="material-symbols-outlined text-[16px]">check_circle</span> System Active`;
-            btn.classList.remove('flashy-activate', 'bg-amber-500');
-            btn.classList.add('bg-emerald-500', 'shadow-emerald-200');
-            alertSound.play().then(() => alertSound.pause());
+        // Init UI
+        document.getElementById('master-toggle').checked = audioEnabled;
+
+        function unlockAudioEngine() {
+            if (audioUnlocked || !audioEnabled) return;
+            alertSound.muted = true;
+            alertSound.play().then(() => {
+                alertSound.pause();
+                alertSound.currentTime = 0;
+                alertSound.muted = false;
+                audioUnlocked = true;
+                updateStatusUI();
+            });
+        }
+
+        function handleToggle() {
+            audioEnabled = document.getElementById('master-toggle').checked;
+            localStorage.setItem('xeroid_audio_v8', JSON.stringify(audioEnabled));
+            if (!audioEnabled) audioUnlocked = false;
+            updateStatusUI();
+        }
+
+        function updateStatusUI() {
+            const bar = document.getElementById('status-bar');
+            const icon = document.getElementById('status-icon');
+            const text = document.getElementById('status-text');
+
+            if (!audioEnabled) {
+                bar.className = "mb-6 p-4 m3-card flex items-center gap-3 bg-slate-200 text-slate-500 shadow-none";
+                icon.innerText = "volume_off"; text.innerText = "Alerts Disabled";
+            } else if (!audioUnlocked) {
+                bar.className = "mb-6 p-4 m3-card flex items-center gap-3 bg-amber-100 text-amber-900 shadow-sm";
+                icon.innerText = "lock"; text.innerText = "Tap screen to arm alarm";
+            } else {
+                bar.className = "mb-6 p-4 m3-card flex items-center gap-3 bg-emerald-100 text-emerald-900 shadow-sm";
+                icon.innerText = "notifications_active"; text.innerText = "Beep Engine Active";
+            }
+        }
+
+        function switchView(viewId, el) {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.getElementById('view-' + viewId).classList.add('active');
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            el.classList.add('active');
         }
 
         function addTask() {
-            const title = document.getElementById('task-title').value;
-            const desc = document.getElementById('task-desc').value;
+            const title = document.getElementById('task-title').value.trim();
+            const desc = document.getElementById('task-desc').value.trim();
             const time = document.getElementById('task-time').value;
-
             if (!title || !time) return;
 
-            tasks.push({
-                id: Date.now(),
-                title,
-                desc,
-                deadline: new Date(time).getTime(),
-                alertDone: false 
-            });
-
+            tasks.push({ id: Date.now(), title, desc, deadline: new Date(time).getTime(), alerted: false });
             save();
             document.getElementById('task-title').value = '';
             document.getElementById('task-desc').value = '';
+            document.getElementById('task-time').value = '';
+            switchView('list', document.querySelectorAll('.nav-item')[0]);
         }
 
         function save() {
-            localStorage.setItem('xeroid_ultra_v1', JSON.stringify(tasks));
+            localStorage.setItem('xeroid_v8', JSON.stringify(tasks));
             render();
         }
 
         function render() {
             const activeList = document.getElementById('active-list');
             const overdueList = document.getElementById('overdue-list');
-            const now = new Date().getTime();
+            const now = Date.now();
             
-            let overdueCount = 0;
             activeList.innerHTML = '';
             overdueList.innerHTML = '';
+            let overdueCount = 0;
 
-            tasks.forEach(task => {
+            tasks.sort((a,b) => a.deadline - b.deadline).forEach(task => {
                 const diff = task.deadline - now;
-                const isOverdue = diff < 0;
-                if(isOverdue) overdueCount++;
+                const isOverdue = diff <= 0;
 
-                if (isOverdue && !task.alertDone && soundEnabled) {
+                if (isOverdue && !task.alerted && audioUnlocked && audioEnabled) {
                     alertSound.play();
-                    task.alertDone = true;
-                    save();
+                    task.alerted = true;
+                    localStorage.setItem('xeroid_v8', JSON.stringify(tasks));
                 }
 
-                let timeStr = "";
-                if(!isOverdue) {
+                if (isOverdue) overdueCount++;
+
+                // LIVE COUNTDOWN LOGIC
+                let countdown = "";
+                if (!isOverdue) {
                     const h = Math.floor(diff / 3600000);
                     const m = Math.floor((diff % 3600000) / 60000);
                     const s = Math.floor((diff % 60000) / 1000);
-                    timeStr = `${h}h ${m}m ${s}s`;
+                    countdown = `${h}h ${m}m ${s}s`;
                 } else {
-                    timeStr = "Overdue";
+                    countdown = "EXPIRED";
                 }
 
-                const cardHtml = `
-                <div class="task-card-glass p-5 flex items-center justify-between gap-4 ${isOverdue ? 'pulse-overdue' : ''}">
-                    <div class="flex-1 min-w-0">
-                        <div class="flex items-center gap-2 mb-1">
-                            <span class="text-[10px] font-black ${isOverdue ? 'text-red-600' : 'text-blue-500'} uppercase tracking-widest">${timeStr}</span>
+                const card = `
+                    <div class="m3-card p-6 ${isOverdue ? 'bg-m3Error/10 text-m3Error border-none' : 'bg-white shadow-sm border border-slate-100'}">
+                        <div class="flex justify-between items-start gap-4">
+                            <div class="flex-1 overflow-hidden">
+                                <span class="text-[9px] font-black tracking-widest opacity-60 uppercase">${countdown}</span>
+                                <h3 class="text-lg font-bold mt-1 truncate">${task.title}</h3>
+                                ${task.desc ? `<p class="mt-2 text-sm opacity-70 italic border-t ${isOverdue ? 'border-m3Error/20' : 'border-slate-50'} pt-2">${task.desc}</p>` : ''}
+                            </div>
+                            <button onclick="removeTask(${task.id})" class="w-12 h-12 flex-shrink-0 m3-pill ${isOverdue ? 'bg-m3Error text-white' : 'bg-m3SecContainer text-m3Prim'} flex items-center justify-center shadow-sm">
+                                <span class="material-symbols-rounded">${isOverdue ? 'close' : 'check'}</span>
+                            </button>
                         </div>
-                        <h3 class="text-sm font-bold text-slate-800 truncate">${task.title}</h3>
-                        ${task.desc ? `<p class="text-[11px] text-slate-500 mt-1 line-clamp-1">${task.desc}</p>` : ''}
-                    </div>
-                    <button onclick="completeTask(${task.id})" class="flex-shrink-0 w-12 h-12 rounded-full glass flex items-center justify-center text-slate-300 hover:text-emerald-500 transition-all active:scale-90 shadow-sm border-white">
-                        <span class="material-symbols-outlined text-3xl">check_circle</span>
-                    </button>
-                </div>`;
+                    </div>`;
 
-                if(isOverdue) overdueList.innerHTML += cardHtml;
-                else activeList.innerHTML += cardHtml;
+                if (isOverdue) overdueList.innerHTML += card;
+                else activeList.innerHTML += card;
             });
 
-            document.getElementById('total-stat').innerText = tasks.length;
-            document.getElementById('overdue-badge').innerText = overdueCount;
+            document.getElementById('critical-section').classList.toggle('hidden', overdueCount === 0);
+            document.getElementById('empty-state').classList.toggle('hidden', tasks.length > 0);
+            updateStatusUI();
         }
 
-        function completeTask(id) {
+        function removeTask(id) {
             tasks = tasks.filter(t => t.id !== id);
             save();
         }
